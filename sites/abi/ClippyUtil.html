@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Cell Clipper</title>
+
+<style>
+:root{
+  --bg:#0e0e0e;
+  --panel:#161616;
+  --border:#2a2a2a;
+  --text:#d0d0d0;
+  --muted:#8a8a8a;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+body{
+  font-family:system-ui, sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+
+#top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:8px 10px;
+  background:var(--panel);
+  border-bottom:1px solid var(--border);
+  gap:10px;
+}
+
+button{
+  background:transparent;
+  border:1px solid var(--border);
+  color:var(--text);
+  padding:3px 7px;
+  cursor:pointer;
+}
+
+#keyinfo{
+  flex:1;
+  display:flex;
+  gap:10px;
+  font-size:11px;
+  color:var(--muted);
+}
+
+.kb{
+  color:var(--text);
+  border:1px solid var(--border);
+  padding:1px 5px;
+  font-size:10px;
+}
+
+#namebar{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 14px;
+  border-bottom:1px solid var(--border);
+}
+
+#name{ font-size:22px; flex-shrink:0; }
+
+#rangebar{ flex:1; height:3px; background:#1f1f1f; }
+#rangefill{ height:100%; width:0%; background:#555; }
+
+#rangefields{
+  display:flex;
+  gap:5px;
+  align-items:center;
+  font-size:11px;
+  color:var(--muted);
+  flex-shrink:0;
+}
+
+#rangefields input[type=number]{ -moz-appearance:textfield; }
+#rangefields input[type=number]::-webkit-outer-spin-button,
+#rangefields input[type=number]::-webkit-inner-spin-button{ -webkit-appearance:none; }
+
+#rangefields input{
+  width:46px;
+  padding:2px 4px;
+  background:#111;
+  border:1px solid var(--border);
+  color:var(--text);
+  font-size:11px;
+  text-align:center;
+}
+
+#value{
+  flex:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:42px;
+  text-align:center;
+  padding:10px;
+}
+
+#status{
+  display:flex;
+  gap:8px;
+  padding:6px;
+  font-size:11px;
+  background:var(--panel);
+  border-top:1px solid var(--border);
+}
+
+.bar{ flex:1; height:3px; background:#1f1f1f; }
+.fill{ height:100%; width:0%; background:#666; }
+
+.overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.9);
+  display:none;
+  align-items:center;
+  justify-content:center;
+}
+
+.box{
+  background:var(--panel);
+  padding:16px;
+  border:1px solid var(--border);
+  min-width:240px;
+  text-align:center;
+}
+
+input{
+  width:100%;
+  padding:6px;
+  margin:10px 0;
+  background:#111;
+  border:1px solid var(--border);
+  color:var(--text);
+}
+
+#start{
+  position:fixed;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  gap:10px;
+  background:var(--bg);
+}
+</style>
+
+</head>
+<body>
+
+<div id="start">
+  <div>Load XLSX</div>
+  <input type="file" id="file" />
+</div>
+
+<div id="top">
+  <div id="fileName">-</div>
+  <div id="keyinfo">
+    <span>next <span class="kb" id="disp-next"></span></span>
+    <span>back <span class="kb" id="disp-back"></span></span>
+  </div>
+  <div>
+    <button id="keysBtn">Keys</button>
+    <button id="jumpBtn">Jump</button>
+    <button id="reloadBtn">Reload</button>
+  </div>
+</div>
+
+<div id="namebar">
+  <div id="name">-</div>
+  <div id="rangebar"><div id="rangefill"></div></div>
+  <div id="rangefields">
+    start <input type="number" id="f-start" />
+    end   <input type="number" id="f-end"   />
+  </div>
+</div>
+
+<div id="value">-</div>
+
+<div id="status">
+  <div id="cinfo">-</div>
+  <div class="bar"><div class="fill" id="b1"></div></div>
+  <div id="iinfo">-</div>
+  <div class="bar"><div class="fill" id="b2"></div></div>
+  <div id="tinfo">-</div>
+  <div class="bar"><div class="fill" id="b3"></div></div>
+</div>
+
+<div class="overlay" id="warn">
+  <div class="box">
+    <div id="warnText"></div>
+    <button id="cont">Continue</button>
+  </div>
+</div>
+
+<div class="overlay" id="boundWarn">
+  <div class="box">
+    <div id="boundText"></div>
+    <button id="boundOk">OK</button>
+  </div>
+</div>
+
+<div class="overlay" id="fieldWarn">
+  <div class="box">
+    <div id="fieldWarnText"></div>
+    <button id="fieldWarnOk">OK, edit</button>
+    <button id="fieldWarnCancel">Cancel</button>
+  </div>
+</div>
+
+<div class="overlay" id="jump">
+  <div class="box">
+    <div>Jump to cell</div>
+    <input type="number" id="jumpInput"/>
+    <button id="go">Go</button>
+    <button id="cancel">Cancel</button>
+  </div>
+</div>
+
+<div class="overlay" id="keybind">
+  <div class="box">
+    <div>Change keys click field then press key</div>
+    <div style="text-align:left;margin:10px 0;font-size:12px">
+      <div style="display:flex;gap:8px;align-items:center;margin:6px 0">
+        <span style="width:40px;color:var(--muted)">Next</span>
+        <input id="kb-next" readonly style="margin:0" />
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;margin:6px 0">
+        <span style="width:40px;color:var(--muted)">Back</span>
+        <input id="kb-back" readonly style="margin:0" />
+      </div>
+    </div>
+    <button id="kb-save">Save</button>
+    <button id="kb-cancel">Cancel</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+const cfg = {
+  startCol:  7,
+  startRow:  2,
+  headerRow: 1,
+  keyNext:   " ",
+  keyBack:   "Backspace",
+};
+
+let cols=[], ci=0, ii=0, total=0, done=0;
+let paramStart=1, paramEnd=null;
+
+const $ = id => document.getElementById(id);
+const keyName = k => k===" " ? "Space" : k;
+
+function updateKeyDisplay(){
+  $("disp-next").textContent = keyName(cfg.keyNext);
+  $("disp-back").textContent = keyName(cfg.keyBack);
+}
+
+(function(){
+  const p = new URLSearchParams(location.search);
+  if(p.has("start")){ const v=parseInt(p.get("start")); if(v>=1) paramStart=v; }
+  if(p.has("end"))  { const v=parseInt(p.get("end"));   if(v>=1) paramEnd=v;   }
+  $("f-start").value = paramStart;
+  $("f-end").value   = paramEnd ?? "";
+})();
+
+updateKeyDisplay();
+
+$("file").onchange = e => load(e.target.files[0]);
+
+function load(f){
+  $("fileName").textContent = f.name;
+  const r = new FileReader();
+  r.onload = e => {
+    const wb = XLSX.read(e.target.result,{type:"array"});
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    parse(ws);
+    $("start").style.display = "none";
+    jumpTo(paramStart-1);
+    render();
+  };
+  r.readAsArrayBuffer(f);
+}
+
+function parse(ws){
+  const rng = XLSX.utils.decode_range(ws["!ref"]);
+  cols=[]; total=0;
+  for(let c=cfg.startCol-1; c<=rng.e.c; c++){
+    const h = ws[XLSX.utils.encode_cell({r:cfg.headerRow-1,c})];
+    if(!h) continue;
+    let arr=[];
+    for(let r=cfg.startRow-1; r<=rng.e.r; r++){
+      const cell = ws[XLSX.utils.encode_cell({r,c})];
+      if(cell&&cell.v!=null&&cell.v!=="") arr.push(String(cell.v));
+    }
+    if(arr.length){ cols.push({name:h.v,cells:arr}); total+=arr.length; }
+  }
+  ci=0; ii=0; done=0;
+}
+
+function render(){
+  if(!cols.length) return;
+  const c = cols[ci];
+  $("name").textContent  = c.name;
+  $("value").textContent = c.cells[ii];
+  $("cinfo").textContent = `C ${ci+1}/${cols.length}`;
+  $("iinfo").textContent = `I ${ii+1}/${c.cells.length}`;
+  $("tinfo").textContent = `T ${done+1}/${total}`;
+  $("b1").style.width = ((ci+1)/cols.length*100)+"%";
+  $("b2").style.width = ((ii+1)/c.cells.length*100)+"%";
+  $("b3").style.width = ((done+1)/total*100)+"%";
+  const s=paramStart, e=paramEnd??total, cur=done+1;
+  $("rangefill").style.width = (e>s ? Math.max(0,Math.min(100,(cur-s)/(e-s)*100)) : 100)+"%";
+}
+
+async function copy(t){ try{await navigator.clipboard.writeText(t)}catch{} }
+
+function next_copyafter(){
+  if(paramEnd!==null && done+1 > paramEnd){
+    showBound(`End of range (cell ${paramEnd}). Use Jump to go beyond.`); return;
+  }
+  copy(cols[ci].cells[ii]);
+  done++; ii++;
+  if(ii >= cols[ci].cells.length){
+    const old = cols[ci].name;
+    ci++; ii=0;
+    if(ci >= cols.length){ $("name").textContent="DONE"; $("value").textContent=""; return; }
+    $("warnText").textContent = `Done ${old} -> ${cols[ci].name}`;
+    $("warn").style.display = "flex";
+    render();
+    return;
+  }
+  render();
+}
+
+function next_dpr_copyafter(){
+  copy(cols[ci].cells[ii]);
+
+  done++; ii++;
+
+  if(ii>=cols[ci].cells.length){
+    const old=cols[ci].name;
+    ci++; ii=0;
+
+    if(ci>=cols.length){
+      $("name").textContent="DONE";
+      $("value").textContent="";
+      return;
+    }
+
+    $("warnText").textContent=`Done ${old} -> ${cols[ci].name}`;
+    $("warn").style.display="flex";
+    return;
+  }
+  render();
+}
+
+
+function next_dpr(){
+  done++;  ii++;
+
+  if(ii >= cols[ci].cells.length){
+    const old = cols[ci].name;
+    ci++; ii = 0;
+
+    if(ci >= cols.length){
+      $("name").textContent = "DONE";
+      $("value").textContent = "";
+      return;
+    }
+
+    $("warnText").textContent = `Done ${old} -> ${cols[ci].name}`;
+    $("warn").style.display = "flex";
+
+    render();
+
+    copy(cols[ci].cells[ii]);
+
+    return;
+  }
+
+  render();
+
+  copy(cols[ci].cells[ii]);
+}
+
+
+function next(){
+  if(paramEnd!==null && done+1 > paramEnd){
+    showBound(`End of range (cell ${paramEnd}) reached.\nIf you received these settings preconfigured, it means that your workload is finished and you can quit.\nUse the Jump Button to go beyond manually.`); return;
+  }
+  done++; ii++;
+  if(ii >= cols[ci].cells.length){
+    const old = cols[ci].name;
+    ci++; ii=0;
+    if(ci >= cols.length){ $("name").textContent="DONE"; $("value").textContent=""; return; }
+    $("warnText").textContent = `Done ${old} -> ${cols[ci].name}`;
+    $("warn").style.display = "flex";
+    render();
+    copy(cols[ci].cells[ii]);
+    return;
+  }
+  render();
+  copy(cols[ci].cells[ii]);
+
+}
+
+function back(){
+  if(done <= paramStart-1){
+    showBound(`Already at start of range (cell ${paramStart}).\nIf you received these settings preconfigured, it means that the elements beyond this limit are someone elses job.\nUse the Jump Button to move manually.`); return;
+  }
+  if(!ci&&!ii) return;
+  done--; ii--;
+  if(ii<0){ ci--; ii=cols[ci].cells.length-1; }
+  render();
+}
+
+function jumpTo(idx0){
+  if(!cols.length) return;
+  idx0 = Math.max(0, Math.min(total-1, idx0));
+  let r=idx0;
+  for(let i=0;i<cols.length;i++){
+    if(r<cols[i].cells.length){ ci=i; ii=r; done=idx0; return; }
+    r-=cols[i].cells.length;
+  }
+}
+
+function showBound(msg){ $("boundText").textContent=msg; $("boundWarn").style.display="flex"; }
+
+document.addEventListener("keydown", e => {
+  if($("jump").style.display    ==="flex") return;
+  if($("keybind").style.display ==="flex") return;
+  if($("fieldWarn").style.display==="flex") return;
+
+  if(e.key===cfg.keyNext){
+    e.preventDefault();
+    if($("boundWarn").style.display==="flex"){ $("boundWarn").style.display="none"; return; }
+    if($("warn").style.display==="flex"){ $("warn").style.display="none"; render(); return; }
+    next();
+  }
+  if(e.key===cfg.keyBack){
+    e.preventDefault();
+    if($("boundWarn").style.display==="flex"){ $("boundWarn").style.display="none"; return; }
+    if($("warn").style.display==="flex"){ $("warn").style.display="none"; render(); return; }
+    back();
+  }
+});
+
+$("cont").onclick    = () => { $("warn").style.display="none"; render(); };
+$("boundOk").onclick = () => { $("boundWarn").style.display="none"; };
+
+$("jumpBtn").onclick = () => { $("jumpInput").value=""; $("jump").style.display="flex"; $("jumpInput").focus(); };
+$("cancel").onclick  = () => { $("jump").style.display="none"; };
+$("go").onclick = () => {
+  const t = +$("jumpInput").value;
+  if(t>=1&&t<=total){ jumpTo(t-1); $("jump").style.display="none"; render(); }
+};
+$("jumpInput").addEventListener("keydown", e => {
+  if(e.key==="Enter") $("go").click();
+  if(e.key==="Escape") $("jump").style.display="none";
+});
+
+$("reloadBtn").onclick = () => location.reload();
+
+let pendingField=null, fieldAcked=false;
+
+function guardField(id, msg){
+  $("f-"+id).addEventListener("focus", () => {
+    if(!fieldAcked){ pendingField=id; $("fieldWarnText").textContent=msg; $("fieldWarn").style.display="flex"; }
+  });
+}
+guardField("start","Normally set via URL ?start=N. Changing here only affects this session. Do not change unless advised otherwise!");
+guardField("end",  "Normally set via URL ?end=N. Changing here only affects this session. Do not change unless advised otherwise!");
+
+$("fieldWarnOk").onclick = () => {
+  fieldAcked=true; $("fieldWarn").style.display="none"; $("f-"+pendingField).focus();
+};
+$("fieldWarnCancel").onclick = () => {
+  $("fieldWarn").style.display="none"; $("f-"+pendingField).blur();
+};
+
+$("f-start").addEventListener("change", () => {
+  const v=parseInt($("f-start").value);
+  if(!isNaN(v)&&v>=1) paramStart=v;
+  fieldAcked=false; render();
+});
+$("f-end").addEventListener("change", () => {
+  const v=parseInt($("f-end").value);
+  paramEnd=(!isNaN(v)&&v>=1)?v:null;
+  fieldAcked=false; render();
+});
+
+let kbDraft={};
+$("keysBtn").onclick = () => {
+  $("kb-next").value=keyName(cfg.keyNext);
+  $("kb-back").value=keyName(cfg.keyBack);
+  kbDraft={next:cfg.keyNext,back:cfg.keyBack};
+  $("keybind").style.display="flex";
+};
+["kb-next","kb-back"].forEach(id => {
+  $(id).addEventListener("keydown", e => {
+    e.preventDefault();
+    $(id).value=keyName(e.key);
+    if(id==="kb-next") kbDraft.next=e.key; else kbDraft.back=e.key;
+  });
+});
+$("kb-save").onclick   = () => { cfg.keyNext=kbDraft.next; cfg.keyBack=kbDraft.back; updateKeyDisplay(); $("keybind").style.display="none"; };
+$("kb-cancel").onclick = () => { $("keybind").style.display="none"; };
+</script>
+
+</body>
+</html>
