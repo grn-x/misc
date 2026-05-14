@@ -241,6 +241,7 @@ input{ width:100%;padding:6px;margin:8px 0;background:#111;border:1px solid var(
   <div id="view-byname">
     <div class="browse-top">
       <select id="sel-name"></select>
+	  <span id="byname-count" style="font-size:11px;color:var(--muted);flex-shrink:0"></span>
     </div>
     <div class="browse-list" id="list-byname"></div>
   </div>
@@ -249,6 +250,7 @@ input{ width:100%;padding:6px;margin:8px 0;background:#111;border:1px solid var(
   <div id="view-bycom">
     <div class="browse-top">
       <select id="sel-com"></select>
+	  <span id="bycom-count" style="font-size:11px;color:var(--muted);flex-shrink:0"></span>
     </div>
     <div class="browse-list" id="list-bycom"></div>
   </div>
@@ -858,6 +860,7 @@ function renderByName(){
       '<span class="browse-val">' + processDisplay(cell.val) + '</span>';
     list.appendChild(row);
   });
+  $("byname-count").textContent = col.cells.length + " comments";
 }
 
 
@@ -865,9 +868,11 @@ function renderByName(){
 function renderByCom(){
   const targetRowIdx = parseInt($("sel-com").value);
   const list = $("list-bycom"); list.innerHTML = "";
+  let count = 0;
   cols.forEach(col => {
     const cell = col.cells.find(c => c.rowIdx === targetRowIdx);
     if(!cell) return;
+	count++;
     const row = document.createElement("div"); row.className = "browse-row";
 //     row.innerHTML = '<span class="browse-lbl">' + col.name + '</span><span class="browse-val">' + processDisplay(cell.val) + '</span>';
     row.innerHTML =
@@ -875,8 +880,8 @@ function renderByCom(){
       '<span class="browse-val">' + processDisplay(cell.val) + '</span>';
     list.appendChild(row);
   });
+  $("bycom-count").textContent = count + " comments";
 }
-
 
 
 
